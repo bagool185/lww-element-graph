@@ -3,7 +3,7 @@ import unittest
 import time 
 
 from Edge import Edge
-import LwwGraph
+from LwwGraph import LwwGraph
 
 
 class TestLwwGraph(unittest.TestCase):

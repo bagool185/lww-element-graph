@@ -1,27 +1,26 @@
 import time
-from typing import List
 
-import LwwElementSets, Edge
+from LwwElementSets import LwwElementSets
+import Edge
 
 
 class LwwGraph:
 
-  def __init__(self, adjacency_list: List[any]) -> None:
+  def __init__(self, adjacency_list) -> None:
       self.vertices = LwwElementSets()
       self.edges = LwwElementSets()
       self.adjacency_list = adjacency_list
 
-  def edge_exists(self, edge: Edge) -> bool:
-    if self.vertex_exists(edge.vertex1) and self.vertex_exists(edge.vertex2):
-      return self.edges.element_exists(edge)
-
-    return False
+  #################### vertex operations ####################
 
   def vertex_exists(self, vertex) -> bool:
     return self.vertices.element_exists(vertex)
 
   def add_vertex(self, vertex, timestamp):
-    
+    """
+    Add a vertex if it doesn't exist already
+    And if its timestamp is bigger than its remove_set counterpart
+    """
     time_now = time.time()
 
     if self.vertex_exists(vertex):
@@ -48,24 +47,11 @@ class LwwGraph:
 
     return False
 
-  def __create_edge(self, edge: Edge):
-    self.adjacency_list[edge.vertex1].append(edge.vertex2)
-    self.adjacency_list[edge.vertex2].append(edge.vertex1)
-
-  def add_edge(self, edge: Edge, timestamp):
-
-    if self.vertex_exists(edge.vertex1) and self.vertex_exists(edge.vertex2):
-
-      if not self.edge_exists(edge):
-        self.edges.add_set[edge] = timestamp
-        self.__create_edge(edge)
-
-        return True 
-
-      return False
-  
   def remove_vertex(self, vertex, timestamp):
-
+    """
+    Add a vertex if it exists
+    And if its timestamp is bigger than its add_set counterpart
+    """
     if self.vertex_exists(vertex):
 
       self.vertices.sync_timestamp(vertex, timestamp)
@@ -85,21 +71,21 @@ class LwwGraph:
     else:
       self.vertices.sync_timestamp(vertex, timestamp)
 
-  def remove_edge(self, edge: Edge, timestamp):
+  def get_vertices(self) -> list:
 
-    if self.edge_exists(edge):
-      self.edges.sync_timestamp(edge, timestamp)
+    vertices = []
 
-      if self.edges.remove_set[edge] > self.edges.remove_set[edge]:
-        self.adjacency_list[edge.vertex1].remove(edge.vertex2)
-        self.adjacency_list[edge.vertex2].remove(edge.vertex1)
+    for vertex in self.vertices.add_set:
+      if self.vertices.element_exists(vertex):
+        vertices.append(vertex)
 
-        return True
+    return vertices
 
-      return False 
-    else: 
-      if edge in self.edges.remove_set:
-        self.edges.sync_timestamp(edge, timestamp)
+  def get_connected_vertices(self, vertex):
+    if self.vertex_exists(vertex):
+      return self.adjacency_list[vertex]
+
+    return None
 
   def find_path(self, start_vertex, end_vertex, path = None):
 
@@ -123,24 +109,58 @@ class LwwGraph:
     
     return None
 
+  #################### vertex operations ####################
+
+  def edge_exists(self, edge: Edge) -> bool:
+    if self.vertex_exists(edge.vertex1) and self.vertex_exists(edge.vertex2):
+      return self.edges.element_exists(edge)
+
+    return False
+
+  def __create_edge(self, edge: Edge):
+    self.adjacency_list[edge.vertex1].append(edge.vertex2)
+    self.adjacency_list[edge.vertex2].append(edge.vertex1)
+
+  def add_edge(self, edge: Edge, timestamp):
+    """
+    Add an Edge if it doesn't exist already
+    And if its timestamp is bigger than its remove_set counterpart
+    """
+    if self.vertex_exists(edge.vertex1) and self.vertex_exists(edge.vertex2):
+
+      if not self.edge_exists(edge):
+        self.edges.add_set[edge] = timestamp
+        self.__create_edge(edge)
+
+        return True 
+
+      return False
+  
+  def remove_edge(self, edge: Edge, timestamp): 
+    """
+    Remove an Edge if it exists
+    And if its timestamp is bigger than its add_set counterpart
+    """
+    if self.edge_exists(edge):
+      self.edges.sync_timestamp(edge, timestamp)
+
+      if self.edges.remove_set[edge] > self.edges.remove_set[edge]:
+        self.adjacency_list[edge.vertex1].remove(edge.vertex2)
+        self.adjacency_list[edge.vertex2].remove(edge.vertex1)
+
+        return True
+
+      return False 
+    else: 
+      if edge in self.edges.remove_set:
+        self.edges.sync_timestamp(edge, timestamp)
+
+  #################### misc operations ####################
+
   def merge(self, lww_graph):
     self.vertices.merge(lww_graph.vertices)
     self.edges.merge(lww_graph.edges)
 
     return self
 
-  def get_vertices(self) -> list:
-
-    vertices = []
-
-    for vertex in self.vertices.add_set:
-      if self.vertices.element_exists(vertex):
-        vertices.append(vertex)
-
-    return vertices
-
-  def get_connected_vertices(self, vertex):
-    if self.vertex_exists(vertex):
-      return self.adjacency_list[vertex]
-
-    return None
+  
