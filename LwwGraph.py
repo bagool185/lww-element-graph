@@ -131,10 +131,16 @@ class LwwGraph:
 
   def get_vertices(self) -> list:
 
-      vertices = []
+    vertices = []
 
-      for vertex in self.vertices.add_set:
-        if self.vertices.element_exists(vertex):
-          vertices.append(vertex)
+    for vertex in self.vertices.add_set:
+      if self.vertices.element_exists(vertex):
+        vertices.append(vertex)
 
-      return vertices
+    return vertices
+
+  def get_connected_vertices(self, vertex):
+    if self.vertex_exists(vertex):
+      return self.adjacency_list[vertex]
+
+    return None
